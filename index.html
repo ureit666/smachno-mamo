@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Смачно, мамо!</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #FDFBF7;
+      --card: #FFFFFF;
+      --accent: #D8AE96;
+      --text: #4A4441;
+      --muted: #8C827A;
+      --cream: #F5EBE6;
+      --shadow: 0 4px 15px rgba(216, 174, 150, 0.15);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding-bottom: 90px; }
+    header { background: var(--cream); padding: 20px 16px 15px; text-align: center; border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; box-shadow: var(--shadow); position: sticky; top: 0; z-index: 100; }
+    header h1 { font-size: 22px; color: var(--text); margin-bottom: 10px; }
+    .search-box { position: relative; max-width: 400px; margin: 0 auto; }
+    .search-box input { width: 100%; padding: 10px 16px 10px 40px; border: 1px solid var(--accent); border-radius: 20px; background: var(--card); outline: none; font-size: 14px; color: var(--text); }
+    .search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--accent); }
+    nav.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -4px 15px rgba(0,0,0,0.05); border-top-left-radius: 20px; border-top-right-radius: 20px; z-index: 1000; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--muted); font-size: 11px; cursor: pointer; border: none; background: none; }
+    .nav-item i { font-size: 18px; margin-bottom: 4px; }
+    .nav-item.active { color: var(--accent); font-weight: bold; }
+    .tab-content { display: none; padding: 16px; max-width: 600px; margin: 0 auto; }
+    .tab-content.active { display: block; }
+    .categories-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; scrollbar-width: none; }
+    .categories-scroll::-webkit-scrollbar { display: none; }
+    .cat-btn { padding: 8px 16px; background: var(--cream); border: 1px solid transparent; border-radius: 20px; white-space: nowrap; font-size: 13px; color: var(--text); cursor: pointer; }
+    .cat-btn.active { background: var(--accent); color: #fff; }
+    .recipe-card { background: var(--card); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow); }
+    .recipe-card h3 { font-size: 17px; margin-bottom: 8px; color: var(--text); }
+    .ingredients-list { font-size: 13px; color: var(--muted); margin-bottom: 10px; line-height: 1.4; }
+    .recipe-actions { display: flex; gap: 15px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--cream); }
+    .action-btn { background: none; border: none; font-size: 18px; color: var(--muted); cursor: pointer; display: flex; align-items: center; gap: 5px; }
+    .action-btn.active-like { color: #e74c3c; }
+    .action-btn.active-bookmark { color: var(--accent); }
+    .note-area { width: 100%; margin-top: 10px; padding: 8px 12px; border: 1px solid var(--cream); border-radius: 10px; font-size: 12px; outline: none; resize: vertical; min-height: 40px; background: #FAFAFA; }
+    .tracker-item { background: var(--card); border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow); }
+    .status-select { padding: 6px; border-radius: 8px; border: 1px solid var(--accent); font-size: 12px; background: var(--cream); outline: none; }
+    .info-card { background: var(--card); border-radius: var(--radius); padding: 16px; margin-bottom: 15px; box-shadow: var(--shadow); }
+    .info-card h4 { color: var(--accent); margin-bottom: 8px; }
+    .star-rating { display: flex; gap: 8px; font-size: 24px; color: #DDD; cursor: pointer; justify-content: center; margin: 15px 0; }
+    .star-rating .fa-star.active { color: #F1C40F; }
+    .stats-box { background: var(--cream); padding: 15px; border-radius: 12px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Смачно, мамо! 💛</h1>
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" id="searchInput" placeholder="Пошук інгредієнта..." oninput="filterRecipes()">
+    </div>
+  </header>
+
+  <div id="tab-recipes" class="tab-content active">
+    <div class="categories-scroll">
+      <button class="cat-btn active" onclick="filterCategory('all', this)">Усі</button>
+      <button class="cat-btn" onclick="filterCategory('breakfast', this)">Сніданки</button>
+      <button class="cat-btn" onclick="filterCategory('first', this)">Перші страви</button>
+      <button class="cat-btn" onclick="filterCategory('second', this)">Другі страви</button>
+      <button class="cat-btn" onclick="filterCategory('snack', this)">Перекуси & Десерти</button>
+    </div>
+    <div id="recipesContainer"></div>
+  </div>
+
+  <div id="tab-drinks" class="tab-content">
+    <h2 style="margin-bottom:15px; font-size: 18px;">🥤 Смузі, Лимонади & Тости</h2>
+    <div id="drinksContainer"></div>
+  </div>
+
+  <div id="tab-tracker" class="tab-content">
+    <h2 style="margin-bottom:15px; font-size: 18px;">📋 Трекер продуктів та алергенів</h2>
+    <div id="trackerContainer"></div>
+  </div>
+
+  <div id="tab-info" class="tab-content">
+    <h2 style="margin-bottom:15px; font-size: 18px;">💡 Пам'ятка мами</h2>
+    <div class="info-card">
+      <h4>🩸 Джерела заліза</h4>
+      <p style="font-size: 13px; line-height: 1.5;"><strong>Гемове:</strong> м'ясо, печінка, риба.<br><strong>Негемове:</strong> гречка, сочевиця, шпинат, яйця.</p>
+    </div>
+    <div class="info-card">
+      <h4>🌱 Закріплюють та послаблюють</h4>
+      <p style="font-size: 13px; line-height: 1.5;"><strong>Кріплять:</strong> рис, морква, банан, чорниця.<br><strong>Слаблять:</strong> слива, гарбуз, кабачок, авокадо.</p>
+    </div>
+    <div class="info-card">
+      <h4>👶 Безпечна подача (BLW)</h4>
+      <p style="font-size: 13px; line-height: 1.5;">• Кругле (виноград, лохина) різати на 4 частини уздовж.<br>• Тверде — запікати до м'якості.</p>
+    </div>
+  </div>
+
+  <div id="tab-saved" class="tab-content">
+    <h2 style="margin-bottom:15px; font-size: 18px;">🔖 Збережені рецепти</h2>
+    <div id="savedContainer"></div>
+    <hr style="margin: 25px 0; border: none; border-top: 1px solid var(--cream);">
+    <h2 style="margin-bottom:10px; font-size: 18px; text-align: center;">Оцініть додаток ⭐️</h2>
+    <div class="star-rating" id="starRating">
+      <i class="fas fa-star" onclick="rateApp(1)"></i>
+      <i class="fas fa-star" onclick="rateApp(2)"></i>
+      <i class="fas fa-star" onclick="rateApp(3)"></i>
+      <i class="fas fa-star" onclick="rateApp(4)"></i>
+      <i class="fas fa-star" onclick="rateApp(5)"></i>
+    </div>
+    <div class="stats-box" id="adminStats">
+      <h4 style="margin-bottom: 8px;"><i class="fas fa-chart-bar"></i> Статистика:</h4>
+      <p style="font-size: 12px; line-height: 1.6;">
+        • Відкриттів: <strong id="statVisits">0</strong><br>
+        • Збережених: <strong id="statBookmarks">0</strong><br>
+        • Лайків: <strong id="statLikes">0</strong><br>
+        • Оцінка: <strong id="statRating">5.0 / 5</strong>
+      </p>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="switchTab('recipes', this)"><i class="fas fa-utensils"></i><span>Рецепти</span></button>
+    <button class="nav-item" onclick="switchTab('drinks', this)"><i class="fas fa-glass-martini-alt"></i><span>Напої/Тости</span></button>
+    <button class="nav-item" onclick="switchTab('tracker', this)"><i class="fas fa-tasks"></i><span>Трекер</span></button>
+    <button class="nav-item" onclick="switchTab('info', this)"><i class="fas fa-lightbulb"></i><span>Поради</span></button>
+    <button class="nav-item" onclick="switchTab('saved', this)"><i class="fas fa-bookmark"></i><span>Обране</span></button>
+  </nav>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) { tg.expand(); tg.ready(); }
+
+    const recipesData = [
+      { id: 1, cat: 'breakfast', title: 'Кабачкова фритата', ingredients: 'Кабачок, шпинат, сир, цибуля, борошно цільнозернове, оливкова олія, яйце.' },
+      { id: 2, cat: 'breakfast', title: 'Кус-кус з кисломолочним сиром', ingredients: 'Кус-кус, вода, банан, кисломолочний сир (9%), вершкове масло.' },
+      { id: 3, cat: 'breakfast', title: 'Вівсяна каша з чіа та ряженкою', ingredients: 'Вівсяні пластівці, ряженка, арахісова паста, насіння чіа, банан, ягоди.' },
+      { id: 4, cat: 'breakfast', title: 'Малинові капкейки', ingredients: 'Банан, яйця, малина.' },
+      { id: 5, cat: 'breakfast', title: 'Овочеві оладки', ingredients: 'Цукіні, морква, цибуля, часник, яйце, борошно, куркума, олія.' },
+      { id: 6, cat: 'breakfast', title: 'Сирні котлетки з кіноа та броколі', ingredients: 'Кіноа, сир, броколі, морква, цибуля, яйце, мускатний горіх, коріандр.' },
+      { id: 7, cat: 'breakfast', title: 'Сирний омлет з авокадо', ingredients: 'Яйце, твердий сир, авокадо, вершковий сир.' },
+      { id: 8, cat: 'breakfast', title: 'Кабачкові мінірулетики', ingredients: 'Кабачок, моцарела, кріп, сік лимона, базилік, оливкова олія.' },
+      { id: 9, cat: 'breakfast', title: 'Омлет з червоною рибою та печерицями', ingredients: 'Яйце, філе червоної риби, печериці, цибуля, сир, вершковий сир.' },
+      { id: 10, cat: 'breakfast', title: 'Морквяна полента з амаранту з зеленим маслом', ingredients: 'Морква, амарант, петрушка, оливкова олія, лимонний сік, волоський горіх.' },
+      { id: 11, cat: 'breakfast', title: 'Сирний плов', ingredients: 'Філе стегон кури або індички, рис, морква, сир, кокосова олія, хмелі-сунелі, паприка.' },
+      { id: 12, cat: 'breakfast', title: 'Суші болс', ingredients: 'Рис, філе червоної риби, огірок, лист норі, вершковий сир, зелена цибуля, кунжут.' },
+      { id: 13, cat: 'breakfast', title: 'Паста з броколі та горошком у сирно-вершковому соусі', ingredients: 'Макарони, горошок, вершки, броколі, вершкове масло, сир, мускатний горіх.' },
+      { id: 14, cat: 'breakfast', title: 'Крокети з форелі', ingredients: 'Форель, картопля, горох, яйце, сік лимона, панірувальні сухарі, зелень.' },
+      { id: 15, cat: 'breakfast', title: 'Паста з горошком', ingredients: 'Макарони, горошок, крем-сир, цибуля, оливкова олія.' },
+      { id: 16, cat: 'breakfast', title: 'Морквяно-кабачкові мафіни', ingredients: 'Кабачок, морква, банан, борошно житнє, сода, яйце, йогурт, масло вершкове, кориця, ванілін.' },
+      { id: 17, cat: 'breakfast', title: 'Кукурудзяна піца', ingredients: 'Кукурудза, яйце, помідор, крем-сир, борошно, італійські трави.' },
+      { id: 18, cat: 'breakfast', title: 'Рисова запіканка з овочами', ingredients: 'Рис, морква, твердий сир, броколі, кукурудза, цибуля, часник, яйце.' },
+
+      { id: 19, cat: 'first', title: 'Суп з сочевиці', ingredients: 'Сочевиця червона, рис, морква, цибуля, часник, кмин, петрушка, сік лимона.' },
+      { id: 20, cat: 'first', title: 'Гороховий суп-пюре зі шпинатом', ingredients: 'Цибуля, морква, часник, селера, картопля, горох, бейбі шпинат, орегано, кмин.' },
+      { id: 21, cat: 'first', title: 'Борщ з болгарським перцем на свинині', ingredients: 'Свинина, картопля, капуста, буряк, цибуля, морква, томатна паста, зелень.' },
+      { id: 22, cat: 'first', title: 'Грибний крем-суп', ingredients: 'Печериці, картопля, цибуля, морква, вершки, коріандр, петрушка.' },
+      { id: 23, cat: 'first', title: 'Холодник', ingredients: 'Куряче філе, буряк, огірок, яйця, лимонний сік, гірчиця, сметана, зелень.' },
+      { id: 24, cat: 'first', title: 'Крем-суп з цвітної капусти та квасолі', ingredients: 'Цвітна капуста, квасоля, вершки, кеш’ю, часник, оливкова олія, лимонний сік.' },
+      { id: 25, cat: 'first', title: 'Вершковий суп з лососем', ingredients: 'Лосось, картопля, морква, цибуля, вершки, імбир, коріандр, італійські трави.' },
+      { id: 26, cat: 'first', title: 'Томатно-квасолевий суп', ingredients: 'Помідори, квасоля, цибуля, часник, томатна паста, куркума, базилік.' },
+      { id: 27, cat: 'first', title: 'Сирний суп з броколі', ingredients: 'Моцарела, твердий сир, пармезан, вершкове масло, молоко, вершки, броколі, борошно.' },
+      { id: 28, cat: 'first', title: 'Курячо-часниковий суп з метеликами', ingredients: 'Курячі гомілки, макарони-метелики, вершкове масло, борошно, вершки, пармезан, часник.' },
+      { id: 29, cat: 'first', title: 'Суп з креветками', ingredients: 'Креветки, кокосове молоко, рис, перець болгарський, вершкове масло, імбир, томатна паста.' },
+      { id: 30, cat: 'first', title: 'Холодний суп з фіолетової капусти та авокадо', ingredients: 'Фіолетова капуста, авокадо, яблуко, вершковий сир, часник, оливкова олія.' },
+      { id: 31, cat: 'first', title: 'Морквяно-імбирний крем-суп', ingredients: 'Морква, імбирний корінь, цибуля, часник, оливкова олія, кмин, петрушка.' },
+      { id: 32, cat: 'first', title: 'Квасолевий суп з селерою', ingredients: 'Квасоля, селера, морква, цибуля, часник, лимонний сік, кмин, паста тахіні.' },
+      { id: 33, cat: 'first', title: 'Гарбузово-горіховий крем-суп', ingredients: 'Гарбуз, кеш’ю, мигдаль, молоко, червона цибуля, часник, оливкова олія.' },
+
+      { id: 34, cat: 'second', title: 'М\'ясні котлетки з яблуком', ingredients: 'Фарш м\'ясний, яблуко, цибуля, спеції.' },
+      { id: 35, cat: 'second', title: 'Вершковий нут з бататом', ingredients: 'Нут, батат, вершки, спеції.' },
+      { id: 36, cat: 'second', title: 'Картопляне пюре з цвітною капустою', ingredients: 'Картопля, цвітна капуста, масло, молоко.' },
+      { id: 37, cat: 'second', title: 'Картопляна запіканка з овочами та хеком', ingredients: 'Картопля, хек, овочі, вершки, сир.' },
+      { id: 38, cat: 'second', title: 'Пшенично-овочеві брусочки з креветками', ingredients: 'Пшенична крупа, креветки, овочі, соус з авокадо.' },
+      { id: 39, cat: 'second', title: 'Ліниві голубці', ingredients: 'Фарш, рис, капуста, цибуля, морква, томатний соус.' },
+      { id: 40, cat: 'second', title: 'Мітболи з кіноа в томатному соусі', ingredients: 'Фарш, кіноа, томатний соус, спеції.' },
+      { id: 41, cat: 'second', title: 'Курячі стріпси з овочами та кіноа', ingredients: 'Куряче філе, кіноа, овочі, панірування.' },
+      { id: 42, cat: 'second', title: 'Баклажанова лазанья', ingredients: 'Баклажани, фарш, томатний соус, сир моцарела.' },
+      { id: 43, cat: 'second', title: 'Фарширований перець', ingredients: 'Перець, фарш, рис, овочі.' },
+
+      { id: 44, cat: 'snack', title: 'Мафіни з авокадо та лохиною', ingredients: 'Авокадо, лохина, борошно, розпушувач, молоко, яйце.' },
+      { id: 45, cat: 'snack', title: 'Морквяно-кокосові панкейки', ingredients: 'Морква, кокос, молоко, борошно, кокосова паста, кориця.' },
+      { id: 46, cat: 'snack', title: 'Морквяне печиво', ingredients: 'Морква, вершкове масло, борошно цільнозернове, зернистий творог.' },
+      { id: 47, cat: 'snack', title: 'Сирно-морквяні кульки', ingredients: 'Морква, сир горіховий, борошно житнє, яйце, імбир, коріандр.' },
+      { id: 48, cat: 'snack', title: 'Вівсяно-яблучні батончики', ingredients: 'Вівсянка, яблуко, насіння чіа, кориця, кокосова олія.' },
+      { id: 49, cat: 'snack', title: 'Бананово-шпинатні панкейки', ingredients: 'Банан, шпинат, яйця, борошно, молоко, сода.' },
+      { id: 50, cat: 'snack', title: 'Бананові слайси з арахісовою пастою', ingredients: 'Банан, грецький йогурт, арахісова паста, мікс насіння.' },
+      { id: 51, cat: 'snack', title: 'Яєчні мафіни з курочкою', ingredients: 'Яйця, кисломолочний сир, сир твердий, курячий фарш, оливкова олія.' },
+      { id: 52, cat: 'snack', title: 'Вершково-абрикосові брускети', ingredients: 'Хліб, масло, вершковий сир, абрикоси, мед або арахісова паста.' },
+      { id: 53, cat: 'snack', title: 'Паштет курячий', ingredients: 'Печінка куряча, цибуля, морква, часник, оливкова олія.' },
+      { id: 54, cat: 'snack', title: 'Кокосові капкейки', ingredients: 'Фініки, кокос, кероб, кокосова паста, грецький йогурт.' },
+      { id: 55, cat: 'snack', title: 'Брускети з запеченими овочами', ingredients: 'Баклажан, помідор, цибуля, часник, оливкова олія, петрушка.' },
+      { id: 56, cat: 'snack', title: 'Чізкейк дитячий', ingredients: 'Фініки, вівсянка, кокосова стружка, кеш’ю, нектарин, грецький йогурт, агар-агар.' },
+      { id: 57, cat: 'snack', title: 'Вершково-фруктові кульки', ingredients: 'Нектарин, вершковий сир, кокосова стружка.' },
+      { id: 58, cat: 'snack', title: 'Банановий пиріг на сковороді', ingredients: 'Банан, яйце, борошно цільнозернове, молоко, кокосова стружка.' },
+      { id: 59, cat: 'snack', title: 'Тортилья з лохиною', ingredients: 'Тортилья, крем-сир, лохина.' },
+      { id: 60, cat: 'snack', title: 'Фруктові крокети з кіноа', ingredients: 'Банан, яблуко, кіноа, вівсянка.' }
+    ];
+
+    const drinksData = [
+      { type: 'Смузі', title: 'Ожина + малина + мигдальне молоко' },
+      { type: 'Смузі', title: 'Ананас + нектарин + кокосове молоко' },
+      { type: 'Смузі', title: 'Лохина + банан + коров’яче молоко' },
+      { type: 'Смузі', title: 'Виноград + груша + соєве молоко' },
+      { type: 'Смузі', title: 'Малина + банан + вівсяне молоко' },
+      { type: 'Смузі', title: 'Гарбуз + манго + банан + молоко' },
+      { type: 'Смузі', title: 'Лохина + авокадо + банан + шпинат + молоко' },
+      { type: 'Смузі', title: 'Малина + йогурт + чіа' },
+      { type: 'Лимонад', title: 'Нектарин + малина' },
+      { type: 'Лимонад', title: 'Ананас + полуниця' },
+      { type: 'Лимонад', title: 'Ожина + порічка' },
+      { type: 'Лимонад', title: 'Лохина + ананас' },
+      { type: 'Лимонад', title: 'Диня + ананас' },
+      { type: 'Лимонад', title: 'Ківі + апельсин' },
+      { type: 'Лимонад', title: 'Кавун + огірок' },
+      { type: 'Тост', title: 'Вершковий сир + полуниця + кеш’ю' },
+      { type: 'Тост', title: 'Вершковий сир + персик' },
+      { type: 'Тост', title: 'Авокадо + скрембл' },
+      { type: 'Тост', title: 'Помідор + моцарела' },
+      { type: 'Тост', title: 'Листя салату + огірок + філе лосося (варене)' },
+      { type: 'Тост', title: 'Арахісова паста + груша' },
+      { type: 'Тост', title: 'Грецький йогурт + яблуко + грецький горіх' },
+      { type: 'Тост', title: 'Хумус + огірки' },
+      { type: 'Тост', title: 'Кокосова паста + ананас' }
+    ];
+
+    const trackerItems = [
+      'Морква', 'Кабачок', 'Броколі', 'Гарбуз', 'Яблуко', 'Банан', 
+      'Яйце (алерген)', 'Глютен (алерген)', 'Молочні продукти (алерген)', 
+      'Риба (алерген)', 'Арахіс/Горіхи (алерген)', 'Соя (алерген)', 'Селера (алерген)'
+    ];
+
+    let appState = JSON.parse(localStorage.getItem('smachno_mamo_state')) || {
+      likes: {}, bookmarks: {}, notes: {}, tracker: {}, visits: 0, rating: 5
+    };
+
+    appState.visits = (appState.visits || 0) + 1;
+    saveState();
+
+    function saveState() {
+      localStorage.setItem('smachno_mamo_state', JSON.stringify(appState));
+      updateAdminStats();
+    }
+
+    function renderRecipes(category = 'all', filterText = '') {
+      const container = document.getElementById('recipesContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const filtered = recipesData.filter(r => {
+        const matchCat = category === 'all' || r.cat === category;
+        const matchSearch = r.title.toLowerCase().includes(filterText.toLowerCase()) || 
+                            r.ingredients.toLowerCase().includes(filterText.toLowerCase());
+        return matchCat && matchSearch;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<p style="text-align:center; color:var(--muted); margin-top:20px;">Нічого не знайдено 🔍</p>`;
+        return;
+      }
+
+      filtered.forEach(r => {
+        const isLiked = appState.likes[r.id];
+        const isBookmarked = appState.bookmarks[r.id];
+        const note = appState.notes[r.id] || '';
+
+        const card = document.createElement('div');
+        card.className = 'recipe-card';
+        card.innerHTML = `
+          <h3>${r.title}</h3>
+          <div class="ingredients-list"><strong>Інгредієнти:</strong> ${r.ingredients}</div>
+          <div class="recipe-actions">
+            <button class="action-btn ${isLiked ? 'active-like' : ''}" onclick="toggleLike(${r.id})">
+              <i class="fa-heart ${isLiked ? 'fas' : 'far'}"></i>
+            </button>
+            <button class="action-btn ${isBookmarked ? 'active-bookmark' : ''}" onclick="toggleBookmark(${r.id})">
+              <i class="fa-bookmark ${isBookmarked ? 'fas' : 'far'}"></i>
+            </button>
+          </div>
+          <textarea class="note-area" placeholder="Твоя нотатка до рецепту..." onchange="saveNote(${r.id}, this.value)">${note}</textarea>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderDrinks() {
+      const container = document.getElementById('drinksContainer');
+      if (!container) return;
+      container.innerHTML = '';
+      drinksData.forEach(d => {
+        const item = document.createElement('div');
+        item.className = 'info-card';
+        item.innerHTML = `<strong>[${d.type}]</strong> ${d.title}`;
+        container.appendChild(item);
+      });
+    }
+
+    function renderTracker() {
+      const container = document.getElementById('trackerContainer');
+      if (!container) return;
+      container.innerHTML = '';
+      trackerItems.forEach((item, idx) => {
+        const status = appState.tracker[idx] || 'not_tried';
+        const div = document.createElement('div');
+        div.className = 'tracker-item';
+        div.innerHTML = `
+          <span style="font-size:14px; font-weight:500;">${item}</span>
+          <select class="status-select" onchange="updateTracker(${idx}, this.value)">
+            <option value="not_tried" ${status==='not_tried'?'selected':''}>Ще ні</option>
+            <option value="try_1" ${status==='try_1'?'selected':''}>1-ша спроба</option>
+            <option value="try_2" ${status==='try_2'?'selected':''}>2-га спроба</option>
+            <option value="success" ${status==='success'?'selected':''}>Введено ✓</option>
+          </select>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function renderSaved() {
+      const container = document.getElementById('savedContainer');
+      if (!container) return;
+      container.innerHTML = '';
+      const savedIds = Object.keys(appState.bookmarks).filter(id => appState.bookmarks[id]);
+      
+      if (savedIds.length === 0) {
+        container.innerHTML = `<p style="color:var(--muted); font-size:13px;">У вас поки немає збережених рецептів. Натискайте 🔖 на рецептах!</p>`;
+        return;
+      }
+
+      recipesData.filter(r => savedIds.includes(String(r.id))).forEach(r => {
+        const card = document.createElement('div');
+        card.className = 'recipe-card';
+        card.innerHTML = `
+          <h3>${r.title}</h3>
+          <div class="ingredients-list">${r.ingredients}</div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function toggleLike(id) {
+      appState.likes[id] = !appState.likes[id];
+      saveState();
+      renderRecipes(currentCat, document.getElementById('searchInput').value);
+    }
+
+    function toggleBookmark(id) {
+      appState.bookmarks[id] = !appState.bookmarks[id];
+      saveState();
+      renderRecipes(currentCat, document.getElementById('searchInput').value);
+    }
+
+    function saveNote(id, text) {
+      appState.notes[id] = text;
+      saveState();
+    }
+
+    function updateTracker(idx, val) {
+      appState.tracker[idx] = val;
+      saveState();
+    }
+
+    function rateApp(stars) {
+      appState.rating = stars;
+      saveState();
+      updateStarsUI(stars);
+      alert('Дякуємо за твою оцінку! 💛');
+    }
+
+    function updateStarsUI(stars) {
+      const iconList = document.querySelectorAll('#starRating i');
+      iconList.forEach((icon, index) => {
+        if (index < stars) icon.classList.add('active');
+        else icon.classList.remove('active');
+      });
+    }
+
+    let currentCat = 'all';
+    function filterCategory(cat, btn) {
+      currentCat = cat;
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderRecipes(currentCat, document.getElementById('searchInput').value);
+    }
+
+    function filterRecipes() {
+      renderRecipes(currentCat, document.getElementById('searchInput').value);
+    }
+
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      
+      document.getElementById('tab-' + tabId).classList.add('active');
+      btn.classList.add('active');
+
+      if (tabId === 'saved') renderSaved();
+    }
+
+    function updateAdminStats() {
+      const v = document.getElementById('statVisits');
+      const b = document.getElementById('statBookmarks');
+      const l = document.getElementById('statLikes');
+      const r = document.getElementById('statRating');
+      if (v) v.innerText = appState.visits || 1;
+      if (b) b.innerText = Object.values(appState.bookmarks).filter(Boolean).length;
+      if (l) l.innerText = Object.values(appState.likes).filter(Boolean).length;
+      if (r) r.innerText = (appState.rating || 5) + ' / 5';
+    }
+
+    // Автоматичний запуск після завантаження сторінки
+    window.addEventListener('DOMContentLoaded', () => {
+      renderRecipes();
+      renderDrinks();
+      renderTracker();
+      updateStarsUI(appState.rating || 5);
+      updateAdminStats();
+    });
+  </script>
+</body>
+</html>
